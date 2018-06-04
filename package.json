@@ -2,7 +2,7 @@
     "name": "vscode-toggl",
     "displayName": "vscode-toggl",
     "description": "Toggl.com integration on vscode",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "publisher": "Armaklan",
     "engines": {
         "vscode": "^1.23.0"
@@ -31,6 +31,10 @@
             {
                 "command": "toggl.current",
                 "title": "Toggl - Current task details"
+            },
+            {
+                "command": "toggl.open",
+                "title": "Toggl - Open in browser"
             }
         ],
         "configuration": {
@@ -40,6 +44,10 @@
                 "toggl.apiKey": {
                     "type": "string",
                     "description": "API Key of your toggl.com account."
+                },
+                "toggl.defaultClient": {
+                    "type": "integer",
+                    "description": "Default client for task."
                 }
             }
         }

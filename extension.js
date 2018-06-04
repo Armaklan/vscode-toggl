@@ -6,6 +6,7 @@ const moment = require('moment');
 
 const config = vscode.workspace.getConfiguration('');
 const apiKey = config.get('toggl.apiKey');
+const defaultProjectId = config.get('toggl.defaultProjectId');
 
 if(!apiKey) {
     vscode.window.showErrorMessage("[Toggl] Api key not defined");
@@ -23,7 +24,7 @@ const statusBarClass = function() {
     }
 
     this.updateNoTask = () => {
-        this.update('No task');
+        this.update({description: 'No task'});
     }
 };
 
@@ -34,7 +35,7 @@ const infoBox = {
         const duration = timeEntry.duration ? moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize() : '';
         const description = timeEntry.description;
         const durationMessage = duration ? `(${duration})` : '';
-        const message = `[Toggl] ${action} ${description} (${durationMessage})`;
+        const message = `[Toggl] ${action} ${description} ${durationMessage}`;
         vscode.window.showInformationMessage(message);
     },
     showNoTask: () => {
@@ -89,7 +90,7 @@ const togglApi = {
         if(!timeEntryName) {
             return togglApi._invalidTaskName();
         }
-        const timeEntry = { description: timeEntryName };
+        const timeEntry = buildTimeEntry(timeEntryName);
         togglClient.startTimeEntry(timeEntry, () => {
             infoBox.show(timeEntry, 'start');
             statusBar.update(timeEntry);
@@ -101,6 +102,13 @@ const togglApi = {
         return;
     }
 };
+
+function buildTimeEntry(description) {
+    return {
+        description: description,
+        pid: defaultProjectId
+    };
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -126,8 +134,12 @@ function activate(context) {
         togglApi.current();
     });
 
+    let togglOpen = vscode.commands.registerCommand('toggl.open', function () {
+        vscode.commands.executeCommand('vscode.open', vscode.Uri.parse("https://toggl.com/app/timer"));
+    });
+
     togglApi.current();
-    context.subscriptions.push(togglStart, togglStartExisting, togglEnd, togglCurrent);
+    context.subscriptions.push(togglStart, togglStartExisting, togglEnd, togglCurrent, togglOpen);
 }
 exports.activate = activate;
 
