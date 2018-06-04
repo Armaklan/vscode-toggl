@@ -2,33 +2,78 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const togglApiClient = require('toggl-api');
+
+const config = vscode.workspace.getConfiguration('');
+const apiKey = config.get('toggl.apiKey');
+
+if(!apiKey) {
+    vscode.window.showErrorMessage("[Toggl] Api key not defined");
+}
 const togglClient = new togglApiClient({
-    apiToken: "xx"
+    apiToken: apiKey
 });
+
+const statusBarClass = function() {
+    this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+
+    this.update = (val) => {
+        this.bar.text = "[Toggl] - " + val;
+        this.bar.show();
+    }
+};
+
+const statusBar = new statusBarClass();
 
 const togglApi = {
     start: () => {
-        const timeEntry = {
-            description: 'Task de test'
-        }
-        togglClient.startTimeEntry(timeEntry, () => {
-            vscode.window.showInformationMessage("[Toggl] Démarrage d'une nouvelle tâche : " + timeEntry.description);
+        vscode.window.showInputBox({
+            prompt: 'Nom de votre tâche ?',
+        }).then((value) => {
+            const timeEntry = {
+                description: value
+            }
+            togglClient.startTimeEntry(timeEntry, () => {
+                vscode.window.showInformationMessage("[Toggl] Start new task : " + timeEntry.description);
+                statusBar.update(timeEntry.description);
+            });
+        })
+    },    
+    startExisting: () => {
+        togglClient.getTimeEntries(undefined, undefined, (err, timeEntries) => {
+            const items = timeEntries.map((t) => t.description).filter(distinct);
+            vscode.window.showQuickPick(items, {}).then((value) => {
+                const timeEntry = {
+                    description: value
+                }
+                togglClient.startTimeEntry(timeEntry, () => {
+                    vscode.window.showInformationMessage("[Toggl] Restart existing task : " + timeEntry.description);
+                    statusBar.update(timeEntry.description);
+                });
+            })
         });
     },
     end: () => {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
             if(timeEntry) {
                 togglClient.stopTimeEntry(timeEntry.id, () => {
-                    vscode.window.showInformationMessage("[Toggl] Arrêt de la tâche : " + timeEntry.description);        
+                    vscode.window.showInformationMessage("[Toggl] Stop task : " + timeEntry.description);  
+                    statusBar.update('No task');      
                 });
             } else {
-                vscode.window.showErrorMessage("[Toggl] Aucun tâche en cours actuellement");
+                vscode.window.showErrorMessage("[Toggl] No task actually running");
+                statusBar.update('No task');
             }
         });
     },
     current: () => {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
-            vscode.window.showInformationMessage("[Toggl] Tâche en cours : " + timeEntry.description);
+            if(timeEntry) {
+                vscode.window.showInformationMessage("[Toggl] Current task : " + timeEntry.description);
+                statusBar.update(timeEntry.description);
+            } else {
+                vscode.window.showInformationMessage("[Toggl] No task actually running");
+                statusBar.update('No task');
+            }
         });
     }
 };
@@ -45,6 +90,10 @@ function activate(context) {
         togglApi.start();
     });
 
+    let togglStartExisting = vscode.commands.registerCommand('toggl.startExisting', function () {
+        togglApi.startExisting();
+    });
+
     let togglEnd = vscode.commands.registerCommand('toggl.end', function () {
         togglApi.end();
     });
@@ -53,7 +102,8 @@ function activate(context) {
         togglApi.current();
     });
 
-    context.subscriptions.push(togglStart, togglEnd, togglCurrent);
+    togglApi.current();
+    context.subscriptions.push(togglStart, togglStartExisting, togglEnd, togglCurrent);
 }
 exports.activate = activate;
 
@@ -61,3 +111,7 @@ exports.activate = activate;
 function deactivate() {
 }
 exports.deactivate = deactivate;
+
+function distinct(value, index, self) { 
+    return self.indexOf(value) === index;
+}

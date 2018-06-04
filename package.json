@@ -21,6 +21,10 @@
                 "title": "Toggl - Start task"
             },
             {
+                "command": "toggl.startExisting",
+                "title": "Toggl - Start existing task"
+            },
+            {
                 "command": "toggl.end",
                 "title": "Toggl - End task"
             },
@@ -28,7 +32,17 @@
                 "command": "toggl.current",
                 "title": "Toggl - Print current task"
             }
-        ]
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Toggl configuration",
+            "properties": {
+                "toggl.apiKey": {
+                    "type": "string",
+                    "description": "API Key of your toggl.com account."
+                }
+            }
+        }
     },
     "scripts": {
         "postinstall": "node ./node_modules/vscode/bin/install",
