@@ -18,73 +18,89 @@ const statusBarClass = function() {
     this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 
     this.update = (val) => {
-        this.bar.text = "[Toggl] - " + val;
+        this.bar.text = "[Toggl] - " + val.description;
         this.bar.show();
+    }
+
+    this.updateNoTask = () => {
+        this.update('No task');
     }
 };
 
 const statusBar = new statusBarClass();
 
+const infoBox = {
+    show : (timeEntry, action = '') => {
+        const duration = timeEntry.duration ? moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize() : '';
+        const description = timeEntry.description;
+        const durationMessage = duration ? `(${duration})` : '';
+        const message = `[Toggl] ${action} ${description} (${durationMessage})`;
+        vscode.window.showInformationMessage(message);
+    },
+    showNoTask: () => {
+        vscode.window.showInformationMessage( 'No task actually running');
+    }
+}
+
 const togglApi = {
     start: () => {
-        vscode.window.showInputBox({
-            prompt: 'Nom de votre tâche ?',
+        vscode.window.showInputBox({ 
+            prompt: 'Task name ?',
         }).then((value) => {
-            const timeEntry = {
-                description: value
-            }
-            togglClient.startTimeEntry(timeEntry, () => {
-                vscode.window.showInformationMessage("[Toggl] Start new task : " + timeEntry.description);
-                statusBar.update(timeEntry.description);
-            });
-        })
+            togglApi._start(value);
+        });
     },    
     startExisting: () => {
         togglClient.getTimeEntries(undefined, undefined, (err, timeEntries) => {
-            const items = timeEntries.map((t) => t.description).filter(distinct);
+            const items = timeEntries.map((t) => t.description).filter(distinct).filter(notNullOrEmpty);
             vscode.window.showQuickPick(items, {}).then((value) => {
-                const timeEntry = {
-                    description: value
-                }
-                togglClient.startTimeEntry(timeEntry, () => {
-                    vscode.window.showInformationMessage("[Toggl] Restart existing task : " + timeEntry.description);
-                    statusBar.update(timeEntry.description);
-                });
+                togglApi._start(value);
             })
         });
     },
     end: () => {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
             if(timeEntry) {
-                togglClient.stopTimeEntry(timeEntry.id, () => {
-                    showTimeEntryInformation(timeEntry, 'stop');
-                    statusBar.update('No task');      
+                return togglClient.stopTimeEntry(timeEntry.id, () => {
+                    infoBox.show(timeEntry, 'stop');
+                    statusBar.updateNoTask();
                 });
-            } else {
-                vscode.window.showErrorMessage("[Toggl] No task actually running");
-                statusBar.update('No task');
             }
+            togglApi._noTask();
         });
     },
     current: () => {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
             if(timeEntry) {
-                showTimeEntryInformation(timeEntry); 
-                statusBar.update(timeEntry.description);
-            } else {
-                vscode.window.showInformationMessage("[Toggl] No task actually running");
-                statusBar.update('No task');
+                return togglApi._refresh(timeEntry);
             }
+            togglApi._noTask();
         });
+    },
+    _refresh: (timeEntry) => {
+        infoBox.show(timeEntry);
+        statusBar.update(timeEntry);
+    },
+    _noTask: () => {
+        infoBox.showNoTask();
+        statusBar.updateNoTask();
+    },
+    _start: (timeEntryName) => {
+        if(!timeEntryName) {
+            return togglApi._invalidTaskName();
+        }
+        const timeEntry = { description: timeEntryName };
+        togglClient.startTimeEntry(timeEntry, () => {
+            infoBox.show(timeEntry, 'start');
+            statusBar.update(timeEntry);
+        });
+    },
+    _invalidTaskName: () => {
+        vscode.window.showErrorMessage("[Toggl] No task name");
+        statusBar.updateNoTask();
+        return;
     }
 };
-
-function showTimeEntryInformation(timeEntry, action = '') {
-    const duration = moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize();
-    const description = timeEntry.description;
-    const message = `[Toggl] ${action} ${description} (${duration})`;
-    vscode.window.showInformationMessage(message);
-}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -119,6 +135,10 @@ exports.activate = activate;
 function deactivate() {
 }
 exports.deactivate = deactivate;
+
+function notNullOrEmpty(value) {
+    return !!value;
+}
 
 function distinct(value, index, self) { 
     return self.indexOf(value) === index;
