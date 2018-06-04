@@ -30,7 +30,7 @@
             },
             {
                 "command": "toggl.current",
-                "title": "Toggl - Print current task"
+                "title": "Toggl - Current task details"
             }
         ],
         "configuration": {
