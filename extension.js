@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const togglApiClient = require('toggl-api');
+const moment = require('moment');
 
 const config = vscode.workspace.getConfiguration('');
 const apiKey = config.get('toggl.apiKey');
@@ -56,7 +57,7 @@ const togglApi = {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
             if(timeEntry) {
                 togglClient.stopTimeEntry(timeEntry.id, () => {
-                    vscode.window.showInformationMessage("[Toggl] Stop task : " + timeEntry.description);  
+                    showTimeEntryInformation(timeEntry, 'stop');
                     statusBar.update('No task');      
                 });
             } else {
@@ -68,7 +69,7 @@ const togglApi = {
     current: () => {
         togglClient.getCurrentTimeEntry((err, timeEntry) => {
             if(timeEntry) {
-                vscode.window.showInformationMessage("[Toggl] Current task : " + timeEntry.description);
+                showTimeEntryInformation(timeEntry); 
                 statusBar.update(timeEntry.description);
             } else {
                 vscode.window.showInformationMessage("[Toggl] No task actually running");
@@ -77,6 +78,13 @@ const togglApi = {
         });
     }
 };
+
+function showTimeEntryInformation(timeEntry, action = '') {
+    const duration = moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize();
+    const description = timeEntry.description;
+    const message = `[Toggl] ${action} ${description} (${duration})`;
+    vscode.window.showInformationMessage(message);
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed

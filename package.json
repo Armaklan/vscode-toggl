@@ -2,7 +2,7 @@
     "name": "vscode-toggl",
     "displayName": "vscode-toggl",
     "description": "Toggl.com integration on vscode",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "Armaklan",
     "engines": {
         "vscode": "^1.23.0"
@@ -56,6 +56,7 @@
         "@types/mocha": "^2.2.42"
     },
     "dependencies": {
+        "moment": "^2.22.2",
         "toggl-api": "^1.0.1"
     }
 }
