@@ -17,6 +17,7 @@ In status bar (on right), the current task is visible.
 This extension contributes the following settings:
 
 * `toggl.apiKey`: API Key of your toggl account
+* `toggl.defaultProjectId`: Project ID to attach all new task.
 
 ## Release Notes
 
