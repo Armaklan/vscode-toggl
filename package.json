@@ -3,7 +3,11 @@
     "displayName": "vscode-toggl",
     "description": "Toggl.com integration on vscode",
     "version": "0.0.3",
-    "publisher": "Armaklan",
+    "publisher": "lionel-zuber",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Armaklan/vscode-toggl"
+    },
     "engines": {
         "vscode": "^1.23.0"
     },
