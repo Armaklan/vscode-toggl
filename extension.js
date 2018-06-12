@@ -1,11 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-const togglApiClient = require('toggl-api');
-const moment = require('moment');
-
-const momentDurationFormatSetup = require("moment-duration-format");
-momentDurationFormatSetup(moment);
+const toggl = require('./toggl');
+const infoBox = require('./infobox');
 
 const timer = new (require('./timer'))();
 
@@ -16,87 +13,47 @@ const defaultProjectId = config.get('toggl.defaultProjectId');
 if(!apiKey) {
     vscode.window.showErrorMessage("[Toggl] Api key not defined");
 }
-const togglClient = new togglApiClient({
-    apiToken: apiKey
-});
+const togglCli = new toggl.client(apiKey);
 
-const statusBarClass = function() {
-    this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+const statusBar = new (require('./statusbar'))();
 
-    this.update = (val, time = undefined) => {
-        if(time) {
-            const duration = moment.duration(time);
-            this.bar.text = "[ " + duration.format("h:m:s") + "] [Toggl] - " + val.description;
-        } else {
-            this.bar.text = "[Toggl] - " + val.description;
-        }        
-        this.bar.show();
-    }
 
-    this.updateNoTask = () => {
-        this.update({description: 'No task'});
-    }
-};
-
-const statusBar = new statusBarClass();
-
-const infoBox = {
-    show : (timeEntry, action = '') => {
-        const duration = timeEntry.duration ? moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize() : '';
-        const description = timeEntry.description;
-        const durationMessage = duration ? `(${duration})` : '';
-        const message = `[Toggl] ${action} ${description} ${durationMessage}`;
-        vscode.window.showInformationMessage(message);
-    },
-    showNoTask: () => {
-        vscode.window.showInformationMessage( 'No task actually running');
-    }
-}
-
-const togglApi = {
+const commands = {
     start: () => {
         vscode.window.showInputBox({ 
             prompt: 'Task name ?',
         }).then((value) => {
-            togglApi._start(value);
+            commands._start(value);
         });
     },    
     startExisting: () => {
-        togglClient.getTimeEntries(undefined, undefined, (err, timeEntries) => {
-            const items = timeEntries.map((t) => t.description).filter(distinct).filter(notNullOrEmpty);
-            vscode.window.showQuickPick(items, {}).then((value) => {
-                togglApi._start(value);
-            })
+        togglCli.all().then((items) => {
+            vscode.window.showQuickPick(items.map((elt) => elt.description), {}).then((value) => {
+                commands._start(value);
+            });
         });
     },
     end: () => {
-        togglClient.getCurrentTimeEntry((err, timeEntry) => {
+        togglCli.stopCurrent().then((timeEntry) => {
             if(timeEntry) {
-                return togglClient.stopTimeEntry(timeEntry.id, () => {
-                    infoBox.show(timeEntry, 'stop');
-                    statusBar.updateNoTask();
-                });
+                infoBox.show(timeEntry, 'stop');
             }
-            togglApi._noTask();
+            commands._noTask();
         });
     },
     current: () => {
-        togglClient.getCurrentTimeEntry((err, timeEntry) => {
+        togglCli.current().then((timeEntry) => {
             if(timeEntry) {
-                return togglApi._refresh(timeEntry);
+                return commands._refresh(timeEntry);
             }
-            togglApi._noTask();
-        });
+            commands._noTask();
+        })
     },
     _refresh: (timeEntry) => {
         infoBox.show(timeEntry);
         timer.stop();
-        let currentTime = 0;
-        if(timeEntry.duration) {
-            currentTime = Math.floor(((Date.now() / 1000 + timeEntry.duration) * 1000));
-        }
-        statusBar.update(timeEntry, currentTime);
-        timer.start(currentTime, (time) => {
+        statusBar.update(timeEntry, timeEntry.duration);
+        timer.start(timeEntry.duration, (time) => {
             statusBar.update(timeEntry, time);
         });
     },
@@ -107,10 +64,10 @@ const togglApi = {
     },
     _start: (timeEntryName) => {
         if(!timeEntryName) {
-            return togglApi._invalidTaskName();
+            return commands._invalidTaskName();
         }
         const timeEntry = buildTimeEntry(timeEntryName);
-        togglClient.startTimeEntry(timeEntry, () => {
+        togglCli.start(timeEntry).then(() => {
             timer.start(0, (time) => {
                 statusBar.update(timeEntry, time);
             });
@@ -125,10 +82,7 @@ const togglApi = {
 };
 
 function buildTimeEntry(description) {
-    return {
-        description: description,
-        pid: defaultProjectId
-    };
+    return new toggl.TimeEntry(description, defaultProjectId);
 }
 
 // this method is called when your extension is activated
@@ -140,26 +94,26 @@ function activate(context) {
     console.log('"vscode-toggl" is active!');
 
     let togglStart = vscode.commands.registerCommand('toggl.start', function () {
-        togglApi.start();
+        commands.start();
     });
 
     let togglStartExisting = vscode.commands.registerCommand('toggl.startExisting', function () {
-        togglApi.startExisting();
+        commands.startExisting();
     });
 
     let togglEnd = vscode.commands.registerCommand('toggl.end', function () {
-        togglApi.end();
+        commands.end();
     });
 
     let togglCurrent = vscode.commands.registerCommand('toggl.current', function () {
-        togglApi.current();
+        commands.current();
     });
 
     let togglOpen = vscode.commands.registerCommand('toggl.open', function () {
         vscode.commands.executeCommand('vscode.open', vscode.Uri.parse("https://toggl.com/app/timer"));
     });
 
-    togglApi.current();
+    commands.current();
     context.subscriptions.push(togglStart, togglStartExisting, togglEnd, togglCurrent, togglOpen);
 }
 exports.activate = activate;
@@ -168,11 +122,3 @@ exports.activate = activate;
 function deactivate() {
 }
 exports.deactivate = deactivate;
-
-function notNullOrEmpty(value) {
-    return !!value;
-}
-
-function distinct(value, index, self) { 
-    return self.indexOf(value) === index;
-}
