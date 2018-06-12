@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-const togglApiClient = require('toggl-api');
+const toggl = require('./toggl');
 const moment = require('moment');
 
 const momentDurationFormatSetup = require("moment-duration-format");
@@ -16,9 +16,7 @@ const defaultProjectId = config.get('toggl.defaultProjectId');
 if(!apiKey) {
     vscode.window.showErrorMessage("[Toggl] Api key not defined");
 }
-const togglClient = new togglApiClient({
-    apiToken: apiKey
-});
+const togglCli = new toggl.client(apiKey);
 
 const statusBarClass = function() {
     this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
@@ -42,7 +40,7 @@ const statusBar = new statusBarClass();
 
 const infoBox = {
     show : (timeEntry, action = '') => {
-        const duration = timeEntry.duration ? moment.duration(Date.now() / 1000 + timeEntry.duration, 'second').humanize() : '';
+        const duration = timeEntry.duration ? moment.duration(timeEntry.duration).humanize() : '';
         const description = timeEntry.description;
         const durationMessage = duration ? `(${duration})` : '';
         const message = `[Toggl] ${action} ${description} ${durationMessage}`;
@@ -62,41 +60,33 @@ const togglApi = {
         });
     },    
     startExisting: () => {
-        togglClient.getTimeEntries(undefined, undefined, (err, timeEntries) => {
-            const items = timeEntries.map((t) => t.description).filter(distinct).filter(notNullOrEmpty);
-            vscode.window.showQuickPick(items, {}).then((value) => {
+        togglCli.all().then((items) => {
+            vscode.window.showQuickPick(items.map((elt) => elt.description), {}).then((value) => {
                 togglApi._start(value);
-            })
+            });
         });
     },
     end: () => {
-        togglClient.getCurrentTimeEntry((err, timeEntry) => {
+        togglCli.stopCurrent().then((timeEntry) => {
             if(timeEntry) {
-                return togglClient.stopTimeEntry(timeEntry.id, () => {
-                    infoBox.show(timeEntry, 'stop');
-                    statusBar.updateNoTask();
-                });
+                infoBox.show(timeEntry, 'stop');
             }
             togglApi._noTask();
         });
     },
     current: () => {
-        togglClient.getCurrentTimeEntry((err, timeEntry) => {
+        togglCli.current().then((timeEntry) => {
             if(timeEntry) {
                 return togglApi._refresh(timeEntry);
             }
             togglApi._noTask();
-        });
+        })
     },
     _refresh: (timeEntry) => {
         infoBox.show(timeEntry);
         timer.stop();
-        let currentTime = 0;
-        if(timeEntry.duration) {
-            currentTime = Math.floor(((Date.now() / 1000 + timeEntry.duration) * 1000));
-        }
-        statusBar.update(timeEntry, currentTime);
-        timer.start(currentTime, (time) => {
+        statusBar.update(timeEntry, timeEntry.duration);
+        timer.start(timeEntry.duration, (time) => {
             statusBar.update(timeEntry, time);
         });
     },
@@ -110,7 +100,7 @@ const togglApi = {
             return togglApi._invalidTaskName();
         }
         const timeEntry = buildTimeEntry(timeEntryName);
-        togglClient.startTimeEntry(timeEntry, () => {
+        togglCli.start(timeEntry).then(() => {
             timer.start(0, (time) => {
                 statusBar.update(timeEntry, time);
             });
@@ -125,10 +115,7 @@ const togglApi = {
 };
 
 function buildTimeEntry(description) {
-    return {
-        description: description,
-        pid: defaultProjectId
-    };
+    return new toggl.TimeEntry(description, defaultProjectId);
 }
 
 // this method is called when your extension is activated
@@ -168,11 +155,3 @@ exports.activate = activate;
 function deactivate() {
 }
 exports.deactivate = deactivate;
-
-function notNullOrEmpty(value) {
-    return !!value;
-}
-
-function distinct(value, index, self) { 
-    return self.indexOf(value) === index;
-}
