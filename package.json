@@ -69,6 +69,7 @@
     },
     "dependencies": {
         "moment": "^2.22.2",
+        "moment-duration-format": "^2.2.2",
         "toggl-api": "^1.0.1"
     }
 }

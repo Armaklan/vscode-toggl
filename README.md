@@ -19,17 +19,3 @@ This extension contributes the following settings:
 * `toggl.apiKey`: API Key of your toggl account
 * `toggl.defaultProjectId`: Project ID to attach all new task.
 
-## Release Notes
-
-### 0.0.1
-
-Initial release : start/end/show current task.
-
-### 0.0.2
-
-Add duration on entry information (on current and stop task).
-
-### 0.0.3
-
-Add default project id to attach new task.
-Add open toggl in browser.

@@ -4,6 +4,11 @@ const vscode = require('vscode');
 const togglApiClient = require('toggl-api');
 const moment = require('moment');
 
+const momentDurationFormatSetup = require("moment-duration-format");
+momentDurationFormatSetup(moment);
+
+const timer = new (require('./timer'))();
+
 const config = vscode.workspace.getConfiguration('');
 const apiKey = config.get('toggl.apiKey');
 const defaultProjectId = config.get('toggl.defaultProjectId');
@@ -18,8 +23,13 @@ const togglClient = new togglApiClient({
 const statusBarClass = function() {
     this.bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 
-    this.update = (val) => {
-        this.bar.text = "[Toggl] - " + val.description;
+    this.update = (val, time = undefined) => {
+        if(time) {
+            const duration = moment.duration(time);
+            this.bar.text = "[ " + duration.format("h:m:s") + "] [Toggl] - " + val.description;
+        } else {
+            this.bar.text = "[Toggl] - " + val.description;
+        }        
         this.bar.show();
     }
 
@@ -80,9 +90,18 @@ const togglApi = {
     },
     _refresh: (timeEntry) => {
         infoBox.show(timeEntry);
-        statusBar.update(timeEntry);
+        timer.stop();
+        let currentTime = 0;
+        if(timeEntry.duration) {
+            currentTime = Math.floor(((Date.now() / 1000 + timeEntry.duration) * 1000));
+        }
+        statusBar.update(timeEntry, currentTime);
+        timer.start(currentTime, (time) => {
+            statusBar.update(timeEntry, time);
+        });
     },
     _noTask: () => {
+        timer.stop();
         infoBox.showNoTask();
         statusBar.updateNoTask();
     },
@@ -92,8 +111,10 @@ const togglApi = {
         }
         const timeEntry = buildTimeEntry(timeEntryName);
         togglClient.startTimeEntry(timeEntry, () => {
+            timer.start(0, (time) => {
+                statusBar.update(timeEntry, time);
+            });
             infoBox.show(timeEntry, 'start');
-            statusBar.update(timeEntry);
         });
     },
     _invalidTaskName: () => {
