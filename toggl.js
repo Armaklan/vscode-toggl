@@ -1,4 +1,5 @@
 const TogglApiClient = require('toggl-api');
+const moment = require('moment');
 
 class TogglClient {
 
@@ -86,6 +87,14 @@ class TimeEntry {
         this.duration = duration;
         this.projectId = pid;
     }
+    
+    formatToHuman() {
+        if(!this.duration) {
+            return '';
+        }
+        return moment.duration(this.duration).humanize();
+    }
+
 }
 
 
@@ -121,7 +130,7 @@ function calculDurationFromTogglEntryInMillisecond(togglEntry) {
     if(!togglEntry.duration) {
         return 0;
     }
-    return Math.floor(((Date.now() / 1000 + togglEntry.duration) * 1000))
+    return Math.floor(((Date.now() / 1000 + togglEntry.duration) * 1000));
 }
 
 
