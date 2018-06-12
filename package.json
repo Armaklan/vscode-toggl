@@ -2,7 +2,7 @@
     "name": "vscode-toggl",
     "displayName": "vscode-toggl",
     "description": "Toggl.com integration on vscode",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "publisher": "armaklan",
     "repository": {
         "type": "git",
