@@ -4,11 +4,12 @@ const vscode = require('vscode');
 const toggl = require('./toggl');
 const infoBox = require('./infobox');
 
-const timer = new (require('./timer'))();
-
 const config = vscode.workspace.getConfiguration('');
 const apiKey = config.get('toggl.apiKey');
 const defaultProjectId = config.get('toggl.defaultProjectId');
+const pomodoroActivated = config.get('toggl.pomodoroActivated') || false;
+
+const timer = new (require('./timer'))(pomodoroActivated);
 
 if(!apiKey) {
     vscode.window.showErrorMessage("[Toggl] Api key not defined");
@@ -53,9 +54,7 @@ const commands = {
         infoBox.show(timeEntry);
         timer.stop();
         statusBar.update(timeEntry, timeEntry.duration);
-        timer.start(timeEntry.duration, (time) => {
-            statusBar.update(timeEntry, time);
-        });
+        commands._startTimer(timeEntry);
     },
     _noTask: () => {
         timer.stop();
@@ -68,10 +67,16 @@ const commands = {
         }
         const timeEntry = buildTimeEntry(timeEntryName);
         togglCli.start(timeEntry).then(() => {
-            timer.start(0, (time) => {
-                statusBar.update(timeEntry, time);
-            });
+            commands._startTimer(timeEntry);
             infoBox.show(timeEntry, 'start');
+        });
+    },
+    _startTimer: (timeEntry) => {
+        timer.start(timeEntry.duration || 0, (time) => {
+            statusBar.update(timeEntry, time);
+        }, () => {
+            commands.end();
+            vscode.window.showWarningMessage("[Toggl] End of pomodoro. Please take a pause.");
         });
     },
     _invalidTaskName: () => {
