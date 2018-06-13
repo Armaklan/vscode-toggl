@@ -54,7 +54,7 @@ const commands = {
         infoBox.show(timeEntry);
         timer.stop();
         statusBar.update(timeEntry, timeEntry.duration);
-        this._startTimer(timeEntry);
+        commands._startTimer(timeEntry);
     },
     _noTask: () => {
         timer.stop();
@@ -67,7 +67,7 @@ const commands = {
         }
         const timeEntry = buildTimeEntry(timeEntryName);
         togglCli.start(timeEntry).then(() => {
-            this._startTimer(timeEntry);
+            commands._startTimer(timeEntry);
             infoBox.show(timeEntry, 'start');
         });
     },
@@ -75,7 +75,7 @@ const commands = {
         timer.start(timeEntry.duration || 0, (time) => {
             statusBar.update(timeEntry, time);
         }, () => {
-            this.stop();
+            commands.end();
             vscode.window.showWarningMessage("[Toggl] End of pomodoro. Please take a pause.");
         });
     },

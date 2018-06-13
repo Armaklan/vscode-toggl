@@ -3,6 +3,7 @@ All notable changes to the "vscode-toggl" extension will be documented in this f
 
 ## Unrelease
 
+- Add pomodoro mode configuration (stop on 25 min of task)
 - Refactor all code structure
 
 ## 0.0.4 - 12/06/2018
