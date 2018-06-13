@@ -4,6 +4,7 @@ All notable changes to the "vscode-toggl" extension will be documented in this f
 ## Unrelease
 
 - Refactor all code structure
+- Fix clear status bar on stop
 
 ## 0.0.4 - 12/06/2018
 

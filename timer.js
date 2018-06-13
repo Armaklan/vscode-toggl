@@ -34,7 +34,7 @@ module.exports = class Timer {
         if(this._timer) {
             clearInterval(this._timer);
             this._timer = undefined;
-            this._tickCallback;
+            this._tickCallback = undefined;
         }
     }
 
