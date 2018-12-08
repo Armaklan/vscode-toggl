@@ -53,7 +53,7 @@
                     "type": "integer",
                     "description": "Default client for task."
                 },
-                "toggl.pomodoro": {
+                "toggl.pomodoroActivated": {
                     "type": "boolean",
                     "description": "Activate pomodoro style timer (stop on 25 minute)."
                 }
