@@ -54,7 +54,7 @@ module.exports = class Timer {
     _tick () {
         this.countdown += MILLISECONDS_IN_SECOND;
         
-        if(this.countdown >= POMODORO_END_TIME) {
+        if((this.countdown >= POMODORO_END_TIME) && this.pomodorActivated) {
             this._pomodoroCallback();
         } else {
             this._tickCallback(this.countdown);
