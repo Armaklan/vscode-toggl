@@ -2,7 +2,7 @@
     "name": "vscode-toggl",
     "displayName": "vscode-toggl",
     "description": "Toggl.com integration on vscode",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "publisher": "armaklan",
     "repository": {
         "type": "git",
@@ -65,11 +65,11 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
-        "eslint": "^4.11.0",
+        "@types/mocha": "^2.2.42",
         "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "eslint": "^4.11.0",
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.26"
     },
     "dependencies": {
         "moment": "^2.22.2",

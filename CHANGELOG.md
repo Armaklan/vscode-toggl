@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "vscode-toggl" extension will be documented in this file.
 
+## 0.0.6 - 17/01/2019
+
+- Fix pomodoro desactivated
+
 ## 0.0.5 - 13/06/2018
 
 - Add pomodoro mode configuration (stop on 25 min of task)
